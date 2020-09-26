@@ -1,0 +1,16 @@
+{
+  "name": "webrtc-node",
+  "version": "1.0.0",
+  "description": "Backend for Video Calling",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Matthew Wong",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.17.1",
+    "mediasoup": "^3.6.21",
+    "socket.io": "^2.3.0"
+  }
+}
