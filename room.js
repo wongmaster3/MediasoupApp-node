@@ -16,12 +16,19 @@ class Room {
         return this.producerTransports[producerTransportId];
     }
 
+    getProducerTransports() {
+        return this.producerTransports;
+    }
+
     addConsumerTransport(consumerTransport) {
         this.consumerTransports[consumerTransport.id] = consumerTransport;
     }
 
     getConsumerTransport(consumerTransportId) {
         return this.consumerTransports[consumerTransportId];
+    }
+    getConsumerTransports() {
+        return this.consumerTransports;
     }
 
     addParticipant(participant) {
