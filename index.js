@@ -28,8 +28,13 @@ let rooms = {};
 
 async function createIOServer() {
   io.on('connection', socket => { 
-    console.log('Example app listening on port 3000!');
+      console.log('Example app listening on port 3000!');
   
+      socket.on('joinRoom', (data) => {
+        // Have the user join a specific room
+        socket.join(data.roomId);
+      });
+
       socket.on('disconnect', () => {
         console.log('client disconnected');
       });
@@ -62,12 +67,37 @@ async function createIOServer() {
           const { transport, params } = await createWebRtcTransport(roomId);
           console.log('Created Consumer Transport!');
           rooms[roomId].addConsumerTransport(transport);
+          console.log('Current consumer Ids: ' + Object.keys(rooms[roomId].consumerTransports));
+          console.log('Just Created Id: ' + params.id);
           socket.emit('consumerTransportParameters', params);
         } catch (err) {
           console.error(err);
           socket.emit('consumerTransportParameters', { error: err.message });
         }
       });
+
+      socket.on('createBatchConsumerTransports', async (data) => {
+        try {
+          let allParams = [];
+          console.log(rooms[data.roomId].getParticipants());
+          console.log(data.participantId);
+          for (let participant of rooms[data.roomId].getParticipants()) {
+            if (participant.id !== data.participantId) {
+              const { transport, params } = await createWebRtcTransport(data.roomId);
+              rooms[data.roomId].addConsumerTransport(transport);
+              allParams.push({
+                params: params,
+                participant: participant
+              });
+            }
+          }
+          socket.emit('batchConsumerTransportParameters', allParams);
+        } catch (err) {
+          console.error(err);
+          socket.emit('batchConsumerTransportParameters', { error: err.message });
+        }
+      });
+
   
       socket.on('connectProducerTransport', async (data) => {
         console.log('Connecting Producer Transport...');
@@ -77,7 +107,6 @@ async function createIOServer() {
   
       socket.on('connectConsumerTransport', async (data) => {
         console.log('Connecting Consumer Transport...');
-        console.log(rooms[data.roomId].getConsumerTransports());
         await rooms[data.roomId].getConsumerTransport(data.transportId).connect({ dtlsParameters: data.dtlsParameters });
         console.log('Connected Consumer Transport!');
       });
@@ -87,15 +116,12 @@ async function createIOServer() {
         console.log('Creating Produce ' + kind + ' Stream...');
         const producer = await rooms[data.roomId].getProducerTransport(data.transportId).produce({ kind, rtpParameters });
         console.log('Created Produce ' + kind + ' Stream!');
-        rooms[data.roomId].addParticipant({ id: producer.id, mediaType: kind });
-        
-        socket.broadcast.emit('newProducer', { id: producer.id, mediaType: kind });
-        socket.emit('producerId', { id: producer.id, mediaType: kind });
-  
-        // inform clients about new producer
-        // for (var i = 0; i < rooms[roomId].getParticipants().length; i++) {
-        //   await socket.broadcast.emit('newProducer', { id: producer.id, mediaType: kind });
-        // }
+
+        // Doesn't work why??????
+        // socket.broadcast.in(data.roomId).emit('newProducer', { id: producer.id, kind: kind });
+        socket.broadcast.emit('newProducer', { id: producer.id, kind: kind });
+        socket.emit('producerId', { id: producer.id, kind: kind });
+        rooms[data.roomId].addParticipant({ id: producer.id, kind: kind });
         
       });
   
@@ -105,14 +131,15 @@ async function createIOServer() {
         console.log('Created Consumer!');
       });
   
-      // socket.on('resume', async (data, callback) => {
-      //   await consumer.resume();
-      //   callback();
-      // });
+      socket.on('resume', async (data) => {
+        // console.log(Object.keys(rooms[data.roomId].producerTransports));
+        // console.log(Object.keys(rooms[data.roomId].consumerTransports));
+        await rooms[data.roomId].getConsumer(data.id).resume();
+      });
 
       socket.on('createRoom', async(data) => {
         const mediaCodecs = config.mediasoup.router.mediaCodecs;
-        mediasoupRouter = await worker.createRouter({ mediaCodecs });
+        const mediasoupRouter = await worker.createRouter({ mediaCodecs });
         // Might need to put below into database?
         rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
         socket.emit('roomId', mediasoupRouter.id);
@@ -141,9 +168,10 @@ async function createConsumer(producer, rtpCapabilities, consumerTransportId, ro
     consumer = await rooms[roomId].getConsumerTransport(consumerTransportId).consume({
       producerId: producer.id,
       rtpCapabilities,
-      // paused: producer.kind === 'video',
-      paused: false,
+      paused: producer.kind === 'video',
+      // paused: false,
     });
+    rooms[roomId].addConsumer(consumer);
   } catch (error) {
     console.error('consume failed', error);
     return;

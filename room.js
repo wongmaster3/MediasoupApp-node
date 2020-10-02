@@ -6,6 +6,7 @@ class Room {
       this.producerIds = [];
       this.producerTransports = {};
       this.consumerTransports = {};
+      this.consumers = {};
     }
 
     addProducerTransport(producerTransport) {
@@ -27,8 +28,17 @@ class Room {
     getConsumerTransport(consumerTransportId) {
         return this.consumerTransports[consumerTransportId];
     }
+
     getConsumerTransports() {
         return this.consumerTransports;
+    }
+
+    addConsumer(consumer) {
+        this.consumers[consumer.id] = consumer;
+    }
+
+    getConsumer(consumerId) {
+        return this.consumers[consumerId];
     }
 
     addParticipant(participant) {
