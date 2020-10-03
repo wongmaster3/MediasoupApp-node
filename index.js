@@ -127,8 +127,8 @@ async function createIOServer() {
         console.log('Created Produce ' + kind + ' Stream!');
 
         // Doesn't work why??????
-        // socket.broadcast.in(data.roomId).emit('newProducer', { id: producer.id, kind: kind });
-        socket.broadcast.emit('newProducer', { id: producer.id, kind: kind });
+        socket.to(data.roomId).emit('newProducer', { id: producer.id, kind: kind });
+        // socket.broadcast.emit('newProducer', { id: producer.id, kind: kind });
         socket.emit('producerId', { id: producer.id, kind: kind });
         rooms[data.roomId].addParticipant({ id: producer.id, kind: kind });
         
