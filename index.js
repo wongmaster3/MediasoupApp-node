@@ -27,9 +27,18 @@ let rooms = {};
 })();
 
 async function createIOServer() {
-  io.on('connection', socket => { 
+  const roomNamespace = io.of('/rooms');
+  roomNamespace.on('connection', socket => { 
       console.log('Example app listening on port 3000!');
-  
+
+      socket.on('createRoom', async(data) => {
+        const mediaCodecs = config.mediasoup.router.mediaCodecs;
+        const mediasoupRouter = await worker.createRouter({ mediaCodecs });
+        // Might need to put below into database?
+        rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+        socket.emit('roomId', mediasoupRouter.id);
+      });
+
       socket.on('joinRoom', (data) => {
         // Have the user join a specific room
         socket.join(data.roomId);
@@ -135,14 +144,6 @@ async function createIOServer() {
         // console.log(Object.keys(rooms[data.roomId].producerTransports));
         // console.log(Object.keys(rooms[data.roomId].consumerTransports));
         await rooms[data.roomId].getConsumer(data.id).resume();
-      });
-
-      socket.on('createRoom', async(data) => {
-        const mediaCodecs = config.mediasoup.router.mediaCodecs;
-        const mediasoupRouter = await worker.createRouter({ mediaCodecs });
-        // Might need to put below into database?
-        rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
-        socket.emit('roomId', mediasoupRouter.id);
       });
 
       socket.on('getParticipants', (roomId) => {
