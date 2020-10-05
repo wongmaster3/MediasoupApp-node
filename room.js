@@ -1,53 +1,67 @@
+const ActiveProducerTransport = require('./models/transports/ActiveProducerTransport.js');
+const ActiveConsumerTransport = require('./models/transports/ActiveConsumerTransport.js');
+
 class Room {
     constructor(roomId, router) {
       // We use the router id as the room id
       this.roomId = roomId;
       this.routerObj = router;
-      this.producerIds = [];
       this.producerTransports = {};
       this.consumerTransports = {};
       this.consumers = {};
     }
 
-    addProducerTransport(producerTransport) {
-        this.producerTransports[producerTransport.id] = producerTransport;
+    addActiveProducerTransport(producerTransport) {
+        this.producerTransports[producerTransport.id] = new ActiveProducerTransport(producerTransport);
     }
 
-    getProducerTransport(producerTransportId) {
+    addActiveProducerToTransport(transportId, producer) {
+        if (producer.kind === 'video') {
+            this.producerTransports[transportId].addVideoProducer(producer);
+        } else {
+            this.producerTransports[transportId].addAudioProducer(producer);
+        }
+    }
+
+    getActiveProducerTransport(producerTransportId) {
         return this.producerTransports[producerTransportId];
     }
 
-    getProducerTransports() {
+    getActiveProducerTransports() {
         return this.producerTransports;
     }
 
-    addConsumerTransport(consumerTransport) {
-        this.consumerTransports[consumerTransport.id] = consumerTransport;
+
+
+    addActiveConsumerTransport(consumerTransport, parentProducerTransportId) {
+        this.consumerTransports[consumerTransport.id] = new ActiveConsumerTransport(consumerTransport, parentProducerTransportId);
     }
 
-    getConsumerTransport(consumerTransportId) {
+    addActiveConsumerToTransport(transportId, consumer) {
+        if (consumer.kind === 'video') {
+            this.consumerTransports[transportId].addVideoConsumer(consumer);
+        } else {
+            this.consumerTransports[transportId].addAudioConsumer(consumer);
+        }
+    }
+
+    getActiveConsumerTransport(consumerTransportId) {
         return this.consumerTransports[consumerTransportId];
     }
 
-    getConsumerTransports() {
+    getActiveConsumer(consumerTransportId, kind) {
+        if (kind === 'video') {
+            return this.consumerTransports[consumerTransportId].videoConsumer;
+        } else {
+            return this.consumerTransports[consumerTransportId].audioConsumer;
+        }
+    }
+
+    getActiveConsumerTransports() {
         return this.consumerTransports;
     }
 
-    addConsumer(consumer) {
-        this.consumers[consumer.id] = consumer;
-    }
-
-    getConsumer(consumerId) {
-        return this.consumers[consumerId];
-    }
-
-    addParticipant(participant) {
-        this.producerIds.push(participant);
-    }
-
-    getParticipants() {
-        return this.producerIds;
-    }
+    
 
     getRouter() {
         return this.routerObj;
