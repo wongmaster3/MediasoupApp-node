@@ -190,8 +190,8 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
   }
 
   return {
-    producerTransportId: producerTransportId,
     producerId: producer.id,
+    producerTransportId: producerTransportId,
     id: consumer.id,
     consumerTransportId: consumerTransportId,
     kind: consumer.kind,
