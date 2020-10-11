@@ -44,8 +44,9 @@ async function createIOServer() {
         socket.join(data.roomId);
       });
 
-      socket.on('disconnect', () => {
-        // Need to add some teardown code here....
+      socket.on('disconnect', (data) => {
+        // Remove producers and consumers when a client disconnects
+
         console.log('client disconnected');
       });
   
@@ -84,7 +85,7 @@ async function createIOServer() {
           console.log('Creating Consumer Transport...');
           const { transport, params } = await createWebRtcTransport(roomId);
           console.log('Created Consumer Transport!');
-          rooms[roomId].addActiveConsumerTransport(transport, producerTransportId);
+          rooms[roomId].addActiveConsumerTransport(transport, producerTransportId, data.parentProducerTransportId);
           console.log('Current consumer Ids: ' + Object.keys(rooms[roomId].consumerTransports));
           console.log('Just Created Id: ' + params.id);
           socket.emit('consumerTransportParameters', params);
@@ -101,7 +102,8 @@ async function createIOServer() {
           for (let producerTransportId of Object.keys(producerTransports)) {
             if (data.originId !== producerTransportId) {
               const { transport, params } = await createWebRtcTransport(data.roomId);
-              rooms[data.roomId].addActiveConsumerTransport(transport, producerTransportId);
+              // consumer transport, current requester transport id, parent of consumer transport
+              rooms[data.roomId].addActiveConsumerTransport(transport, data.originId, producerTransportId);
               allParams.push({ transportParams: params, originId: producerTransportId });
             }
           }
@@ -150,9 +152,35 @@ async function createIOServer() {
         await rooms[data.roomId].getActiveConsumer(data.transportId, data.kind).resume();
       });
 
-      // socket.on('getParticipants', (roomId) => {
-      //   socket.emit('currentParticipants', rooms[roomId].getParticipants());
-      // });
+      socket.on('cleanup', async (data) => {
+        console.log("Cleaning up...");
+        socket.to(data.roomId).emit('removedProducer', data);
+        const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
+        rooms[data.roomId].removeActiveProducerTransport(data.producerId);
+        for (let producerTransportId of Object.keys(childPairs)) {
+          rooms[data.roomId].removeActiveConsumerTransport(childPairs[producerTransportId]);
+        }
+
+        // If there is no more people in room, close it 
+        // should be something to do with keys
+        const producerLength = Object.keys(rooms[data.roomId].getActiveProducerTransports());
+        const consumerLength = Object.keys(rooms[data.roomId].getActiveConsumerTransports());
+        if (producerLength == 0 && consumerLength == 0) {
+          rooms[data.roomId].routerObj.close();
+          delete rooms[data.roomId];
+          console.log("Room " + data.roomId + " has been closed!")
+        }
+      });
+
+      socket.on('removeConsumerTransport', async (data) => {
+        // Remove consumer transport of the producer that was just removed
+        console.log("Removing consumer transport...");
+        const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
+        console.log(childPairs);
+        console.log(data.removedProducerId);
+        rooms[data.roomId].removeActiveConsumerTransport(childPairs[data.removedProducerId]);
+        delete childPairs[data.removedProducerId];
+      });
    });
   
   server.listen(3000);

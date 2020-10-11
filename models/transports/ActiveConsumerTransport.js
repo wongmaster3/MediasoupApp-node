@@ -1,25 +1,37 @@
 const ActiveTransport = require('./ActiveTransport.js');
 
 class ActiveConsumerTransport extends ActiveTransport {
-    // The producer transportId that is producing to this consumer transport
-    parentTransportId = null;
+    parentProducerTransportId = null;
+
+    // The producer transportId that is requesting this consumer transport
+    associatedClientId = null;
 
     videoConsumer = null;
 
     audioConsumer = null;
 
-    constructor(consumerTransport, parentProducerTransportId) {
+    constructor(consumerTransport, associatedClientId, parentProducerTransportId) {
       // We use the router id as the room id
       super(consumerTransport);
-      this.parentTransportId = parentProducerTransportId;
+      this.parentProducerTransportId = parentProducerTransportId;
+      this.associatedClientId = associatedClientId;
     }
 
-    addVideoConsumer(videoProducer) {
-        this.videoConsumer = videoProducer;
+    addVideoConsumer(videoConsumer) {
+        this.videoConsumer = videoConsumer;
+        this.videoConsumer.on("transportclose", () => {
+            this.videoConsumer.close();
+            console.log("Closing Video Consumer in Consumer Transport " + this.transportId + "!");
+        });
+        
     }
 
-    addAudioConsumer(audioProducer) {
-        this.audioConsumer = audioProducer;
+    addAudioConsumer(audioConsumer) {
+        this.audioConsumer = audioConsumer;
+        this.audioConsumer.on("transportclose", () => {
+            this.audioConsumer.close();
+            console.log("Closing Audio Consumer in Consumer Transport " + this.transportId + "!");
+        });
     }
 }
 

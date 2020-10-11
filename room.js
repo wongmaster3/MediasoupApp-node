@@ -11,6 +11,7 @@ class Room {
       this.consumers = {};
     }
 
+    // Handle producer stuff below
     addActiveProducerTransport(producerTransport) {
         this.producerTransports[producerTransport.id] = new ActiveProducerTransport(producerTransport);
     }
@@ -23,6 +24,11 @@ class Room {
         }
     }
 
+    removeActiveProducerTransport(transportId) {
+        this.producerTransports[transportId].transport.close();
+        delete this.producerTransports[transportId];
+    }
+
     getActiveProducerTransport(producerTransportId) {
         return this.producerTransports[producerTransportId];
     }
@@ -31,10 +37,10 @@ class Room {
         return this.producerTransports;
     }
 
-
-
-    addActiveConsumerTransport(consumerTransport, parentProducerTransportId) {
-        this.consumerTransports[consumerTransport.id] = new ActiveConsumerTransport(consumerTransport, parentProducerTransportId);
+    // Handle consumer stuff below
+    addActiveConsumerTransport(consumerTransport, associatedProducerConsumerId, parentProducerTransportId) {
+        this.consumerTransports[consumerTransport.id] = new ActiveConsumerTransport(consumerTransport, associatedProducerConsumerId, parentProducerTransportId);
+        this.producerTransports[parentProducerTransportId].addConsumerTransportId(associatedProducerConsumerId, consumerTransport.id);
     }
 
     addActiveConsumerToTransport(transportId, consumer) {
@@ -43,6 +49,11 @@ class Room {
         } else {
             this.consumerTransports[transportId].addAudioConsumer(consumer);
         }
+    }
+
+    removeActiveConsumerTransport(transportId) {
+        this.consumerTransports[transportId].transport.close();
+        delete this.consumerTransports[transportId];
     }
 
     getActiveConsumerTransport(consumerTransportId) {
@@ -60,8 +71,6 @@ class Room {
     getActiveConsumerTransports() {
         return this.consumerTransports;
     }
-
-    
 
     getRouter() {
         return this.routerObj;
