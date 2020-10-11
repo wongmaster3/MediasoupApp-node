@@ -39,6 +39,10 @@ async function createIOServer() {
         socket.emit('roomId', mediasoupRouter.id);
       });
 
+      socket.on('roomExists', async (data) => {
+        socket.emit('validRoom', data in rooms);
+      });
+
       socket.on('joinRoom', (data) => {
         // Have the user join a specific room
         socket.join(data.roomId);
@@ -160,6 +164,9 @@ async function createIOServer() {
         for (let producerTransportId of Object.keys(childPairs)) {
           rooms[data.roomId].removeActiveConsumerTransport(childPairs[producerTransportId]);
         }
+
+        // Have the user leave the room
+        socket.leave(data.roomId);
 
         // If there is no more people in room, close it 
         // should be something to do with keys
