@@ -12,5 +12,8 @@
     "express": "^4.17.1",
     "mediasoup": "^3.6.21",
     "socket.io": "^2.3.0"
+  },
+  "devDependencies": {
+    "cors": "^2.8.5"
   }
 }

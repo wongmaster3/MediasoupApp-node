@@ -1,7 +1,7 @@
 const ActiveTransport = require('./ActiveTransport.js');
 
 class ActiveProducerTransport extends ActiveTransport {
-    // Stores an array of active consumer transports connected to this producer transport
+    // Stores hashmap of 'destination producer transport id' -> 'destination consumer transport id'
     childTransportIds = null;
 
     videoProducer = null;

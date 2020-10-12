@@ -10,6 +10,15 @@ const config = require('./config.js');
 
 const Room = require('./room.js');
 
+
+const cors = require('cors')
+const corsOptions = {
+  origin: 'http://localhost:4200',
+  optionsSuccessStatus: 200
+}
+app.use(cors(corsOptions))
+
+
 let worker;
 let webServer;
 let socketServer;
@@ -26,18 +35,27 @@ let rooms = {};
   }
 })();
 
+// REST api here
+app.get("/createRoom", async (req, res, next) => {
+  const mediaCodecs = config.mediasoup.router.mediaCodecs;
+  const mediasoupRouter = await worker.createRouter({ mediaCodecs });
+  // Might need to put below into database?
+  rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+  res.json({roomId: mediasoupRouter.id});
+});
+
 async function createIOServer() {
   const roomNamespace = io.of('/rooms');
   roomNamespace.on('connection', socket => { 
       console.log('Example app listening on port 3000!');
 
-      socket.on('createRoom', async(data) => {
-        const mediaCodecs = config.mediasoup.router.mediaCodecs;
-        const mediasoupRouter = await worker.createRouter({ mediaCodecs });
-        // Might need to put below into database?
-        rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
-        socket.emit('roomId', mediasoupRouter.id);
-      });
+      // socket.on('createRoom', async(data) => {
+      //   const mediaCodecs = config.mediasoup.router.mediaCodecs;
+      //   const mediasoupRouter = await worker.createRouter({ mediaCodecs });
+      //   // Might need to put below into database?
+      //   rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+      //   socket.emit('roomId', mediasoupRouter.id);
+      // });
 
       socket.on('roomExists', async (data) => {
         socket.emit('validRoom', data in rooms);
@@ -49,8 +67,6 @@ async function createIOServer() {
       });
 
       socket.on('disconnect', (data) => {
-        // Remove producers and consumers when a client disconnects
-
         console.log('client disconnected');
       });
   
@@ -65,6 +81,7 @@ async function createIOServer() {
         } catch (error) {
           console.log("RoomId: " + roomId);
           console.log("RoomIdObj: " + rooms[roomId]);
+          console.log("Rooms: " + rooms);
           console.log(error);
         }
       });
@@ -160,6 +177,8 @@ async function createIOServer() {
         console.log("Cleaning up...");
         socket.to(data.roomId).emit('removedProducer', data);
         const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
+        console.log("In cleanup childPairs keys: " + Object.keys(childPairs));
+        console.log("In cleanup childPairs values: " + Object.values(childPairs));
         rooms[data.roomId].removeActiveProducerTransport(data.producerId);
         for (let producerTransportId of Object.keys(childPairs)) {
           rooms[data.roomId].removeActiveConsumerTransport(childPairs[producerTransportId]);
@@ -177,16 +196,18 @@ async function createIOServer() {
           delete rooms[data.roomId];
           console.log("Room " + data.roomId + " has been closed!")
         }
+        // console.log("Producer Transports: " + Object.keys(rooms[data.roomId].getActiveProducerTransports()));
+        // console.log("Consumer Transports: " + Object.keys(rooms[data.roomId].getActiveConsumerTransports()));
       });
 
       socket.on('removeConsumerTransport', async (data) => {
         // Remove consumer transport of the producer that was just removed
         console.log("Removing consumer transport...");
         const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
-        console.log(childPairs);
-        console.log(data.removedProducerId);
         rooms[data.roomId].removeActiveConsumerTransport(childPairs[data.removedProducerId]);
         delete childPairs[data.removedProducerId];
+        // console.log("In Remove Consumer Transport Producer Transports: " + Object.keys(rooms[data.roomId].getActiveProducerTransports()));
+        // console.log("In Remove Consumer Transport Consumer Transports: " + Object.keys(rooms[data.roomId].getActiveConsumerTransports()));
       });
    });
   
@@ -195,6 +216,9 @@ async function createIOServer() {
 
 
 async function createConsumer(producerTransportId, kind, rtpCapabilities, consumerTransportId, roomId) {
+  console.log("In createConsumer...");
+  console.log(Object.keys(rooms[roomId].getActiveConsumerTransports()));
+  console.log(consumerTransportId);
   const producerTransport = rooms[roomId].getActiveProducerTransport(producerTransportId);
   // console.log(producerTransport);
   var producer = kind === "video" ? producerTransport.videoProducer : producerTransport.audioProducer;
