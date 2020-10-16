@@ -44,6 +44,13 @@ app.get("/createRoom", async (req, res, next) => {
   res.json({roomId: mediasoupRouter.id});
 });
 
+app.get("/roomExists", async (req, res, next) => {
+  const roomId = req.query.roomId;
+  // console.log(req.query);
+  res.json({ exists: roomId in rooms });
+});
+
+// Socket IO routes here
 async function createIOServer() {
   const roomNamespace = io.of('/rooms');
   roomNamespace.on('connection', socket => { 
