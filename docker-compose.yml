@@ -1,0 +1,14 @@
+version: '1.0'
+
+services:
+
+  MediaSoupNode:
+    container_name: mediasoup-node
+    build:
+      context: .
+      dockerfile: Dockerfile
+    volumes:
+      - .:/app
+      - /app/node_modules
+    ports:
+      - 3000:3000
