@@ -3,9 +3,14 @@ process.env.DEBUG = "mediasoup*"
 
 const mediasoup = require("mediasoup");
 const app = require('express')();
-const server = require('http').createServer(app);
-const options = { /* ... */ };
-const io = require('socket.io')(server, options);
+const fs = require('fs');
+const options = {
+	key: fs.readFileSync('key.pem'),
+	cert: fs.readFileSync('cert.pem')
+};
+const server = require('https').createServer(options, app);
+const optionsSocket = { /* ... */ };
+const io = require('socket.io')(server, optionsSocket);
 const config = require('./config.js');
 
 const Room = require('./room.js');
@@ -13,7 +18,7 @@ const Room = require('./room.js');
 
 const cors = require('cors')
 const corsOptions = {
-  origin: 'http://localhost:4200',
+  origin: 'https://3.92.208.132:4200',
   optionsSuccessStatus: 200
 }
 app.use(cors(corsOptions))
@@ -54,7 +59,7 @@ app.get("/roomExists", async (req, res, next) => {
 async function createIOServer() {
   const roomNamespace = io.of('/rooms');
   roomNamespace.on('connection', socket => { 
-      console.log('Example app listening on port 3000!');
+      console.log('Example app listening on port 80!');
 
       // socket.on('createRoom', async(data) => {
       //   const mediaCodecs = config.mediasoup.router.mediaCodecs;
