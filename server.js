@@ -6,10 +6,10 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const options = {
-	// key: fs.readFileSync('key.pem'),
-	// cert: fs.readFileSync('cert.pem')
+	key: fs.readFileSync('key.pem'),
+	cert: fs.readFileSync('cert.pem')
 };
-const server = require('http').createServer(options, app);
+const server = require('https').createServer(options, app);
 const optionsSocket = { /* ... */ };
 const io = require('socket.io')(server, optionsSocket);
 const config = require('./config.js');
