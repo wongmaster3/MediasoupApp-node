@@ -15,6 +15,7 @@ const config = require('./config.js');
 
 const Room = require('./room.js');
 
+const path = require('path');
 
 // const cors = require('cors')
 // const corsOptions = {
@@ -41,6 +42,10 @@ let rooms = {};
 })();
 
 // REST api here
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname + '/dist/WebRTC/index.html'));
+});
+
 app.get("/createRoom", async (req, res, next) => {
   const mediaCodecs = config.mediasoup.router.mediaCodecs;
   const mediasoupRouter = await worker.createRouter({ mediaCodecs });
