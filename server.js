@@ -5,10 +5,10 @@ const mediasoup = require("mediasoup");
 const app = require('express')();
 const fs = require('fs');
 const options = {
-	key: fs.readFileSync('key.pem'),
-	cert: fs.readFileSync('cert.pem')
+	// key: fs.readFileSync('key.pem'),
+	// cert: fs.readFileSync('cert.pem')
 };
-const server = require('https').createServer(options, app);
+const server = require('http').createServer(options, app);
 const optionsSocket = { /* ... */ };
 const io = require('socket.io')(server, optionsSocket);
 const config = require('./config.js');
@@ -228,7 +228,7 @@ async function createIOServer() {
       });
    });
   
-  server.listen(3000, '127.0.0.1');
+  server.listen(3000);
 }
 
 
