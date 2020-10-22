@@ -16,12 +16,12 @@ const config = require('./config.js');
 const Room = require('./room.js');
 
 
-const cors = require('cors')
-const corsOptions = {
-  origin: 'https://3.92.208.132:4200',
-  optionsSuccessStatus: 200
-}
-app.use(cors(corsOptions))
+// const cors = require('cors')
+// const corsOptions = {
+//   origin: 'https://3.92.208.132:4200',
+//   optionsSuccessStatus: 200
+// }
+// app.use(cors(corsOptions))
 
 
 let worker;
