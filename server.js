@@ -2,7 +2,8 @@
 process.env.DEBUG = "mediasoup*"
 
 const mediasoup = require("mediasoup");
-const app = require('express')();
+const express = require('express');
+const app = express();
 const fs = require('fs');
 const options = {
 	// key: fs.readFileSync('key.pem'),
@@ -16,6 +17,7 @@ const config = require('./config.js');
 const Room = require('./room.js');
 
 const path = require('path');
+app.use(express.static(__dirname + '/dist/WebRTC'));
 
 // const cors = require('cors')
 // const corsOptions = {
