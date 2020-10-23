@@ -6,10 +6,10 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const options = {
-	key: fs.readFileSync('key.pem'),
-	cert: fs.readFileSync('cert.pem')
+	// key: fs.readFileSync('key.pem'),
+	// cert: fs.readFileSync('cert.pem')
 };
-const server = require('https').createServer(options, app);
+const server = require('http').createServer(options, app);
 const optionsSocket = { /* ... */ };
 const io = require('socket.io')(server, optionsSocket);
 const config = require('./config.js');
@@ -66,7 +66,7 @@ app.get("/roomExists", async (req, res, next) => {
 async function createIOServer() {
   const roomNamespace = io.of('/rooms');
   roomNamespace.on('connection', socket => { 
-      console.log('Example app listening on port 80!');
+      console.log('Example app listening on port 3000!');
 
       // socket.on('createRoom', async(data) => {
       //   const mediaCodecs = config.mediasoup.router.mediaCodecs;
