@@ -1,16 +1,12 @@
 const ActiveTransport = require('./ActiveTransport.js');
 
 class ActiveProducerTransport extends ActiveTransport {
-    // Stores hashmap of 'destination producer transport id' -> 'destination consumer transport id'
-    childTransportIds = null;
-
-    videoProducer = null;
-
-    audioProducer = null;
-
     constructor(producerTransport) {
         super(producerTransport);
+        // Stores hashmap of 'destination producer transport id' -> 'destination consumer transport id'
         this.childTransportIds = {};
+        this.videoProducer = null;
+        this.audioProducer = null;
     }
 
     addConsumerTransportId(associatedProducerTransportId, consumerTransportId) {
