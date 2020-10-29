@@ -1,15 +1,5 @@
 module.exports = {
-    transportOptions:  {
-        listenIps : [ { ip: "192.168.0.111", announcedIp: "88.12.10.41" } ],
-        enableUdp : true,
-        enableTcp : true,
-        preferUdp : true
-      },
-
-      listenIp: '0.0.0.0',
       listenPort: 3000,
-      sslCrt: '/etc/ssl/certs/ssl-cert-snakeoil.pem',
-      sslKey: '/etc/ssl/private/ssl-cert-snakeoil.key',
       mediasoup: {
         // Worker settings
         worker: {
@@ -23,11 +13,6 @@ module.exports = {
             'rtp',
             'srtp',
             'rtcp',
-            // 'rtx',
-            // 'bwe',
-            // 'score',
-            // 'simulcast',
-            // 'svc'
           ],
         },
         // Router settings
@@ -44,10 +29,6 @@ module.exports = {
                 kind: 'video',
                 mimeType: 'video/VP8',
                 clockRate: 90000,
-                parameters:
-                  {
-                    'x-google-start-bitrate': 1000
-                  }
               },
             ]
         },
