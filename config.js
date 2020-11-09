@@ -37,7 +37,7 @@ module.exports = {
           listenIps: [
             {
               ip: "0.0.0.0",
-              announcedIp: "mediasoup.umiacs.umd.edu",
+              announcedIp: "mediasoup00.umiacs.umd.edu",
             }
           ],
           maxIncomingBitrate: 1500000,
