@@ -269,7 +269,7 @@ async function createWebRtcTransport(roomId) {
     listenIps: config.mediasoup.webRtcTransport.listenIps,
     enableUdp: true,
     enableTcp: true,
-    preferUdp: true,
+    preferTcp: true,
     initialAvailableOutgoingBitrate,
   });
   console.log('Created WebRtcTransport...')
