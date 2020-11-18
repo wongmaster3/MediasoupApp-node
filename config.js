@@ -36,7 +36,7 @@ module.exports = {
         webRtcTransport: {
           listenIps: [
             {
-              ip: "mediasoup00.umiacs.umd.edu",
+              ip: "0.0.0.0",
               announcedIp: "mediasoup.umiacs.umd.edu",
             }
           ],
