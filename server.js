@@ -2,7 +2,8 @@
 process.env.DEBUG = "mediasoup*"
 
 const mediasoup = require("mediasoup");
-const app = require('express')();
+const express = require('express');
+const app = express();
 const server = require('http').createServer(app);
 const options = { /* ... */ };
 const io = require('socket.io')(server, options);
@@ -17,6 +18,10 @@ const corsOptions = {
   optionsSuccessStatus: 200
 }
 app.use(cors(corsOptions))
+
+	
+// const path = require('path');
+// app.use(express.static(__dirname + '/dist/WebRTC'));
 
 
 let worker;
@@ -36,6 +41,10 @@ let rooms = {};
 })();
 
 // REST api here
+// app.get('/', function(req, res) {
+//   res.sendFile(path.join(__dirname + '/dist/WebRTC/index.html'));
+// });
+
 app.get("/createRoom", async (req, res, next) => {
   const mediaCodecs = config.mediasoup.router.mediaCodecs;
   const mediasoupRouter = await worker.createRouter({ mediaCodecs });
