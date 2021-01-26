@@ -37,7 +37,7 @@ module.exports = {
           listenIps: [
             {
               // ip: "0.0.0.0",
-              ip: "mediasoup00.umiacs.umd.edu",
+              ip: "192.168.83.129",
               announcedIp: "mediasoup.umiacs.umd.edu",
             }
           ],
