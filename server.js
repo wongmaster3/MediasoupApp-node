@@ -174,7 +174,9 @@ async function createIOServer() {
       });
   
       socket.on('resume', async (data) => {
+        console.log("Resuming Track...");
         await rooms[data.roomId].getActiveConsumer(data.transportId, data.kind).resume();
+        console.log("Resumed");
       });
 
       socket.on('cleanup', async (data) => {
