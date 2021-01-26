@@ -232,6 +232,7 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
     console.error('cannot consume');
     return;
   }
+  
   try {
     const consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
       producerId: producer.id,
@@ -240,25 +241,25 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
       // paused: false,
     });
     rooms[roomId].addActiveConsumerToTransport(consumerTransportId, consumer);
+
+    // if (consumer.type === 'simulcast') {
+    //   await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
+    // }
+
+    return {
+      producerId: producer.id,
+      producerTransportId: producerTransportId,
+      id: consumer.id,
+      consumerTransportId: consumerTransportId,
+      kind: consumer.kind,
+      rtpParameters: consumer.rtpParameters,
+      type: consumer.type,
+      producerPaused: consumer.producerPaused
+    };
   } catch (error) {
     console.error('consume failed', error);
     return;
   }
-
-  if (consumer.type === 'simulcast') {
-    await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
-  }
-
-  return {
-    producerId: producer.id,
-    producerTransportId: producerTransportId,
-    id: consumer.id,
-    consumerTransportId: consumerTransportId,
-    kind: consumer.kind,
-    rtpParameters: consumer.rtpParameters,
-    type: consumer.type,
-    producerPaused: consumer.producerPaused
-  };
 }
 
 async function createWebRtcTransport(roomId) {
