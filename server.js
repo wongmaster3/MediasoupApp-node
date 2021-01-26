@@ -233,7 +233,7 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
     return;
   }
   try {
-    consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
+    const consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
       producerId: producer.id,
       rtpCapabilities,
       paused: producer.kind === 'video',
