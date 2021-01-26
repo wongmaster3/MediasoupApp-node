@@ -236,8 +236,8 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
     consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
       producerId: producer.id,
       rtpCapabilities,
-      paused: producer.kind === 'video',
-      // paused: false,
+      // paused: producer.kind === 'video',
+      paused: false,
     });
     rooms[roomId].addActiveConsumerToTransport(consumerTransportId, consumer);
   } catch (error) {
