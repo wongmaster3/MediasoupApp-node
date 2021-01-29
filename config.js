@@ -5,7 +5,7 @@ module.exports = {
         worker: {
           rtcMinPort: 10000,
           rtcMaxPort: 10100,
-          logLevel: 'debug',
+          logLevel: 'warn',
           logTags: [
             'info',
             'ice',
