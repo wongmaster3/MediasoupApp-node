@@ -1,0 +1,8 @@
+I decoded the icb file into char array and put it inline with the c++ main rs3d processing file. To decode, I did:
+
+xxd -i hrtf-cp048-r1.icb > global.cpp
+
+
+In order to compile the wasm file, use this command:
+
+emcc main.cpp global.cpp rs3d.a -s WASM=1 -std=c++11 -s ALLOW_MEMORY_GROWTH=1 -s BINARYEN_ASYNC_COMPILATION=0 -s SINGLE_FILE=1 -s FORCE_FILESYSTEM=1 -s DEMANGLE_SUPPORT=1 -s 'EXTRA_EXPORTED_RUNTIME_METHODS=["stringToUTF8", "lengthBytesUTF16"]' --pre-js buffer.js --post-js spatial-processor.js

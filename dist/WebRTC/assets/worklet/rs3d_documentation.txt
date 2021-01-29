@@ -1,0 +1,188 @@
+
+########################################################################################################################
+
+visisonics_rs3d documentation
+
+########################################################################################################################
+
+Getting Started;
+
+rs3d.h contains concise descriptions for most variables and function arguments;
+Make sure to read it all;
+
+To use this library, grab one or more hrtf's by calling
+visisonics_rs3d_GrabHrtf();
+
+Then for each separate experience you want, call
+visisonics_rs3d_GrabExperience();
+
+Then use
+visisonics_rs3d_Process()
+to process the audio;
+
+If you want to clear the buffers, call
+visisonics_rs3d_ClearBuffers()
+
+When you are finished, free each experience with
+visisonics_rs3d_FreeExperience()
+and then free each hrtf with
+visisonics_rs3d_FreeHrtf();
+
+The general structure of a simple application with one hrtf and a few experiences would look something like the following:
+
+{
+  visisonics_rs3d_HRTF *phrtf;
+  visisonics_rs3d_EXPERIENCE *ppexperience[TOTALEXPERIENCES];
+  visisonics_rs3d_EXPERIENCEINFO experienceinfo;
+  visisonics_rs3d_PROCESSINGINFO processing-info;
+  int ex, chosenexperience;
+
+  ... load .icb file ...
+
+  visisonics_rs3d_GrabHrtf (&phrtf, ...);
+
+  for (ex = 0 ; ex < TOTALEXPERIENCES ; ex++)
+  {
+    ... fill experience info ...
+
+    visisonics_rs3d_GrabExperience (&ppexperience[ex], phrtf, &experienceinfo);
+  }
+
+  while (running)
+  {
+    ... choose current experience ...
+    ... prepare input and output buffers ...
+    ... fill processing info ...
+
+    visisonics_rs3d_Process (ppexperience[chosenexperience], ..., &processinginfo);
+
+    ... send output to headphones ...
+  }
+
+  for (ex = 0 ; ex < TOTALEXPERIENCES ; ex++)
+  {
+    visisonics_rs3d_FreeExperience (ppexperience[ex]);
+  }
+
+  visisonics_rs3d_FreeHrtf (phrtf);
+
+  return;
+}
+
+########################################################################################################################
+
+Here is some sample code on how to fill the structs with minimal values;
+
+You can fill EXPERIENCEINFO like this:
+{
+  visisonics_rs3d_EXPERIENCEINFO info;
+
+  info.customroomsize = false;
+  info.customreflection = false;
+  info.enableambisonics = false;
+  info.requestrt60 = false;
+}
+
+You can fill PROCESSINGINFO like this:
+{
+  visisonics_rs3d_PROCESSINGINFO info;
+  long cx, ax;
+
+  for (cx = 0 ; cx < 3 ; cx++)
+  {
+    info.pheadorientation[cx] = 0;
+  }
+
+  for (cx = 0 ; cx < visisonics_rs3d_MAXSOURCEOBJECTS ; cx++)
+  {
+    info.pobjectinfo[cx].volume = 0;
+
+    for (ax = 0 ; ax < 3 ; ax++)
+    {
+      info.pobjectinfo[cx].pposition[ax] = 0;
+    }
+  }
+
+  info.ambisonicsvolume = 0;
+  info.enabledistanceattenuation = false;
+  info.limitgain = true;
+  info.enableinterpolationforobjects = false;
+  info.enableinterpolationforambisonics = false;
+  info.enableequalizercurve = false;
+}
+
+Look in rs3d.h and the rest of this documentation for more details;
+
+########################################################################################################################
+
+All functions return 0 on success;
+
+If a non-zero integer is returned, the constants at the bottom of rs3d.h describe the error;
+
+########################################################################################################################
+
+Each experience supports a maximum of 32 sources, and a single ambisonics track;
+
+The ambisonics track can be in one of the 5 formats listed in the AMBISONICSFORMAT enum:
+
+ACN_N3D
+ACN_SN3D
+SID_N3D
+SID_SN3D
+FUMA
+
+This constant determines both the ambisonics channel order, and the channel normalizations;
+
+You set the maximum ambisonics order in maxambisonicsorder of EXPERIENCEINFO at the time that you grab an experience;
+
+This number can be from 1 to 6 inclusively, except for the FUMA format, where the number must be from 1 to 3 inclusively; 
+
+Based on the chosen maxambisonicsorder, the number of channels in your ambisonics track is
+
+totalambisonicschannels = ((maxambisonicsorder + 1) * (maxambisonicsorder + 1));
+
+So the highest number of channels you can possibly have is 49;
+
+You may disable ambisonics processing by setting ambisonicsvolume in PROCESSINGINFO to zero;
+This allows you to set the pointers in ppambisonicsinputaudio to NULL;
+
+########################################################################################################################
+
+Each audio sample is a C float, and the sample rate is chosen when you grab an hrtf;
+
+Input audio is mono for the objects;
+
+All output is in stereo;
+
+When you grab an hrtf, you must also choose a block size, and every call to Process(), will process blocks of this size;
+
+This library does not perform any clipping or saturation of the audio;
+
+########################################################################################################################
+
+The library maintains internal audio buffers, so audio input in one Process() call may affect future calls to Process();
+
+For example, if you call Process() once with some audio, and then call Process() a few more times with complete silence,
+  these following calls may continue outputting reverb from the older audio, as well as time-delayed audio;
+
+In order to clear the internal audio buffer, call
+
+visisonics_rs3d_ClearBuffers();
+
+########################################################################################################################
+
+This library uses the vsengine coordinate system:
+The +x axis points right;
+The +y axis points backwards;
+The +z axis points down;
+
+All values are in meters;
+
+For example, an object 1 meter in front of the listener would be at (0, -1, 0),
+  and an object 1 meter above the listener would be at (0, 0, -1);
+
+Head orientation is given as intrinsic Tait-Bryan angles in the z-y'-x'' sequence;
+The order of the elements in the pheadorientation array follows the same sequence;
+All angles are in radians;
+
+########################################################################################################################
