@@ -4,20 +4,27 @@ process.env.DEBUG = "mediasoup*"
 const mediasoup = require("mediasoup");
 const express = require('express');
 const app = express();
-const server = require('http').createServer(app);
-const options = { /* ... */ };
-const io = require('socket.io')(server, options);
+const fs = require('fs');
+const options = {
+	// key: fs.readFileSync('key.pem'),
+	// cert: fs.readFileSync('cert.pem')
+};
+const server = require('http').createServer(options, app);
+const optionsSocket = { /* ... */ };
+const io = require('socket.io')(server, optionsSocket);
 const config = require('./config.js');
 
 const Room = require('./room.js');
 
+const path = require('path');
+app.use(express.static(__dirname + '/dist/WebRTC'));
 
-const cors = require('cors')
-const corsOptions = {
-  origin: 'http://localhost:4200',
-  optionsSuccessStatus: 200
-}
-app.use(cors(corsOptions))
+// const cors = require('cors')
+// const corsOptions = {
+//   origin: 'https://3.92.208.132:4200',
+//   optionsSuccessStatus: 200
+// }
+// app.use(cors(corsOptions))
 
 	
 // const path = require('path');
@@ -41,9 +48,9 @@ let rooms = {};
 })();
 
 // REST api here
-// app.get('/', function(req, res) {
-//   res.sendFile(path.join(__dirname + '/dist/WebRTC/index.html'));
-// });
+app.get('/', function(req, res) {
+  res.sendFile(path.join(__dirname + '/dist/WebRTC/index.html'));
+});
 
 app.get("/createRoom", async (req, res, next) => {
   const mediaCodecs = config.mediasoup.router.mediaCodecs;
@@ -171,7 +178,9 @@ async function createIOServer() {
       });
   
       socket.on('resume', async (data) => {
+        console.log("Resuming Track...");
         await rooms[data.roomId].getActiveConsumer(data.transportId, data.kind).resume();
+        console.log("Resumed");
       });
 
       socket.on('cleanup', async (data) => {
@@ -227,33 +236,34 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
     console.error('cannot consume');
     return;
   }
+  
   try {
-    consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
+    const consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
       producerId: producer.id,
       rtpCapabilities,
       paused: producer.kind === 'video',
       // paused: false,
     });
     rooms[roomId].addActiveConsumerToTransport(consumerTransportId, consumer);
+
+    // if (consumer.type === 'simulcast') {
+    //   await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
+    // }
+
+    return {
+      producerId: producer.id,
+      producerTransportId: producerTransportId,
+      id: consumer.id,
+      consumerTransportId: consumerTransportId,
+      kind: consumer.kind,
+      rtpParameters: consumer.rtpParameters,
+      type: consumer.type,
+      producerPaused: consumer.producerPaused
+    };
   } catch (error) {
     console.error('consume failed', error);
     return;
   }
-
-  if (consumer.type === 'simulcast') {
-    await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
-  }
-
-  return {
-    producerId: producer.id,
-    producerTransportId: producerTransportId,
-    id: consumer.id,
-    consumerTransportId: consumerTransportId,
-    kind: consumer.kind,
-    rtpParameters: consumer.rtpParameters,
-    type: consumer.type,
-    producerPaused: consumer.producerPaused
-  };
 }
 
 async function createWebRtcTransport(roomId) {
@@ -266,7 +276,7 @@ async function createWebRtcTransport(roomId) {
     listenIps: config.mediasoup.webRtcTransport.listenIps,
     enableUdp: true,
     enableTcp: true,
-    preferUdp: true,
+    preferTcp: true,
     initialAvailableOutgoingBitrate,
   });
   console.log('Created WebRtcTransport...')

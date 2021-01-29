@@ -5,7 +5,7 @@ module.exports = {
         worker: {
           rtcMinPort: 10000,
           rtcMaxPort: 10100,
-          logLevel: 'warn',
+          logLevel: 'debug',
           logTags: [
             'info',
             'ice',
@@ -36,7 +36,9 @@ module.exports = {
         webRtcTransport: {
           listenIps: [
             {
-              ip: '127.0.0.1',
+              // ip: "0.0.0.0",
+              // When the ports go public, we need to fill in the announcedIp with the public server domain
+              ip: "192.168.83.129",
               announcedIp: null,
             }
           ],
