@@ -26,6 +26,10 @@ app.use(express.static(__dirname + '/dist/WebRTC'));
 // }
 // app.use(cors(corsOptions))
 
+	
+// const path = require('path');
+// app.use(express.static(__dirname + '/dist/WebRTC'));
+
 
 let worker;
 let webServer;
