@@ -19,12 +19,12 @@ const Room = require('./room.js');
 const path = require('path');
 app.use(express.static(__dirname + '/dist/WebRTC'));
 
-// const cors = require('cors')
+const cors = require('cors')
 // const corsOptions = {
 //   origin: 'https://3.92.208.132:4200',
 //   optionsSuccessStatus: 200
 // }
-// app.use(cors(corsOptions))
+app.use(cors())
 
 	
 // const path = require('path');
