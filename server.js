@@ -46,16 +46,25 @@ let rooms = {};
 // });
 
 app.get("/createRoom", async (req, res, next) => {
+  const userName = req.query.userName;
   const mediaCodecs = config.mediasoup.router.mediaCodecs;
   const mediasoupRouter = await worker.createRouter({ mediaCodecs });
   // Might need to put below into database?
   rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+  rooms[mediasoupRouter.id].userNames[userName] = null;
   res.json({roomId: mediasoupRouter.id});
 });
 
-app.get("/roomExists", async (req, res, next) => {
+app.get("/validateRoomCredentials", async (req, res, next) => {
   const roomId = req.query.roomId;
-  res.json({ exists: roomId in rooms });
+  const userName = req.query.userName;
+
+  var roomExists = false;
+  var nameExists = true;
+  roomExists = roomId in rooms;
+  nameExists = roomExists && !(userName in rooms[roomId].userNames);
+  
+  res.json({ roomExists: roomExists, nameExists: nameExists });
 });
 
 // Socket IO routes here

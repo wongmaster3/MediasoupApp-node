@@ -9,6 +9,7 @@ class Room {
       this.producerTransports = {};
       this.consumerTransports = {};
       this.consumers = {};
+      this.userNames = {};
     }
 
     // Handle producer stuff below
