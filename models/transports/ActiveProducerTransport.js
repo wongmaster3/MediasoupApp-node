@@ -4,14 +4,14 @@ class ActiveProducerTransport extends ActiveTransport {
     constructor(producerTransport) {
         super(producerTransport);
         // Stores hashmap of 'destination producer transport id' -> 'destination consumer transport id'
-        this.childTransportIds = {};
+        // this.producingToConsumerTransports = {};
         this.videoProducer = null;
         this.audioProducer = null;
     }
 
-    addConsumerTransportId(associatedProducerTransportId, consumerTransportId) {
-        this.childTransportIds[associatedProducerTransportId] = consumerTransportId;
-    }
+    // addConsumerTransportId(destUserName, consumerTransportId) {
+    //     this.producingToConsumerTransports[destUserName] = consumerTransportId;
+    // }
 
     addVideoProducer(videoProducer) {
         this.videoProducer = videoProducer;
