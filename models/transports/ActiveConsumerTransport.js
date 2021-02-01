@@ -1,12 +1,9 @@
 const ActiveTransport = require('./ActiveTransport.js');
 
 class ActiveConsumerTransport extends ActiveTransport {
-    constructor(consumerTransport, associatedClientId, parentProducerTransportId) {
-      // We use the router id as the room id
+    constructor(consumerTransport) {
       super(consumerTransport);
-      // The producer transportId that is requesting this consumer transport
-      this.parentProducerTransportId = parentProducerTransportId;
-      this.associatedClientId = associatedClientId;
+
       this.videoConsumer = null;
       this.audioConsumer = null;
     }
