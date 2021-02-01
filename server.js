@@ -34,6 +34,8 @@ let rooms = {};
   try {
     // Start a mediasoup worker
     runMediasoupWorker();
+
+    // Create socket io server
     createIOServer();
   } catch (err) {
     console.error(err);
@@ -74,10 +76,6 @@ async function createIOServer() {
   roomNamespace.on('connection', socket => { 
       console.log('Example app listening on port ' + config.listenPort + '!');
 
-      socket.on('roomExists', async (data) => {
-        socket.emit('validRoom', data in rooms);
-      });
-
       socket.on('joinRoom', (data) => {
         rooms[data.roomId].addUser(data.userName);
         socket.join(data.roomId);
@@ -103,7 +101,6 @@ async function createIOServer() {
         }
       });
   
-      // Done with Changes
       socket.on('createProducerTransport', async (data) => {
         try {
           console.log('Creating Producer Transport...');
@@ -117,8 +114,6 @@ async function createIOServer() {
         }
       });
   
-
-      // Done
       socket.on('createConsumerTransport', async (data) => {
         try {
           const roomId = data.roomId;
@@ -136,7 +131,6 @@ async function createIOServer() {
         }
       });
 
-      // Done with Changes
       socket.on('createBatchConsumerTransports', async (data) => {
         try {
           let allParams = [];
@@ -155,21 +149,18 @@ async function createIOServer() {
         }
       });
 
-      // Done with Changes
       socket.on('connectProducerTransport', async (data) => {
         console.log('Connecting Producer Transport...');
         await rooms[data.roomId].getUser(data.userName).producerConnect({ dtlsParameters: data.dtlsParameters });
         console.log('Connected Producer Transport!');
       });
   
-      // Done with Changes
       socket.on('connectConsumerTransport', async (data) => {
         console.log('Connecting Consumer Transport...');
         await rooms[data.roomId].getUser(data.destUserName).consumerConnect(data.sourceUserName, { dtlsParameters: data.dtlsParameters });
         console.log('Connected Consumer Transport!');
       });
   
-      // Done
       socket.on('produce', async (data) => {
         const {kind, rtpParameters} = data;
         console.log('Creating Produce ' + kind + ' Stream...');
@@ -181,19 +172,16 @@ async function createIOServer() {
         socket.emit('producerId', { id: producer.id, kind: kind });
       });
   
-      // Done
       socket.on('consume', async (data) => {
         console.log('Creating Consumer...');
         socket.emit('newConsumer', await createConsumer(data.sourceUserName, data.kind, data.rtpCapabilities, data.destUserName, data.roomId));
         console.log('Created Consumer!');
       });
   
-      // Done
       socket.on('resume', async (data) => {
         await rooms[data.roomId].getUser(data.destUserName).resume(data.sourceUserName, data.kind);
       });
 
-      // Done
       socket.on('cleanup', async (data) => {
         console.log("Cleaning up...");
         socket.to(data.roomId).emit('removedProducer', data);
@@ -204,8 +192,7 @@ async function createIOServer() {
         // Have the user leave the room
         socket.leave(data.roomId);
 
-        // If there is no more people in room, close it 
-        // should be something to do with keys
+        // If there is no more people in room, close it
         if (rooms[data.roomId].numberOfUsers() === 0) {
           rooms[data.roomId].getRouter().close();
           delete rooms[data.roomId];
@@ -213,7 +200,6 @@ async function createIOServer() {
         }
       });
 
-      // Done
       socket.on('removeConsumerTransport', async (data) => {
         // Remove consumer transport of the producer that was just removed
         console.log("Removing consumer transport...");

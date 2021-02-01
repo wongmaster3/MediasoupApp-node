@@ -3,12 +3,16 @@ const ActiveConsumerTransport = require('./transports/ActiveConsumerTransport.js
 
 class User {
     constructor(userName) {
+        // Name of the user in call
         this.userName = userName;
+        
+        // Will store the producer transport associated with current user name
         this.associatedProducerTransport = null;
+        
+        // Will store the user names and the associated consumer transports that this current user consumes media from
         this.receivingConsumerTransports = {};
     }
 
-    // Handle producer stuff below
     addActiveProducerTransport(producerTransport) {
         this.associatedProducerTransport = new ActiveProducerTransport(producerTransport);
     }
@@ -53,17 +57,17 @@ class User {
         this.receivingConsumerTransports[sourceUserName].transport.connect(params);
     }
 
-    resume(userName, kind) {
+    resume(sourceUserName, kind) {
         if (kind === 'video') {
-            this.receivingConsumerTransports[userName].videoConsumer.resume();
+            this.receivingConsumerTransports[sourceUserName].videoConsumer.resume();
         } else {
-            this.receivingConsumerTransports[userName].audioConsumer.resume();
+            this.receivingConsumerTransports[sourceUserName].audioConsumer.resume();
         }
     }
 
-    removeActiveConsumerTransport(userName) {
-        this.receivingConsumerTransports[userName].transport.close();
-        delete this.receivingConsumerTransports[userName];
+    removeActiveConsumerTransport(sourceUserName) {
+        this.receivingConsumerTransports[sourceUserName].transport.close();
+        delete this.receivingConsumerTransports[sourceUserName];
     }
 
     closeActiveTransports() {
