@@ -38,8 +38,8 @@ module.exports = {
             {
               // ip: "0.0.0.0",
               // When the ports go public, we need to fill in the announcedIp with the public server domain
-              ip: "192.168.83.129",
-              announcedIp: null,
+              ip: "0.0.0.0",
+              announcedIp: "mediasoup.umiacs.umd.edu",
             }
           ],
           maxIncomingBitrate: 1500000,
