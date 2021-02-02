@@ -8,17 +8,25 @@ class User {
         
         // Will store the producer transport associated with current user name
         this.associatedProducerTransport = null;
-        
-        // Will store the user names and the associated consumer transports that this current user consumes media from
-        this.receivingConsumerTransports = {};
+
+        // Will store the consumer transport associated with current user name
+        this.associatedConsumerTransport = null;
     }
 
     addActiveProducerTransport(producerTransport) {
         this.associatedProducerTransport = new ActiveProducerTransport(producerTransport);
     }
 
-    addActiveConsumerTransport(sourceUserName, consumerTransport) {
-        this.receivingConsumerTransports[sourceUserName] = new ActiveConsumerTransport(consumerTransport);
+    addActiveConsumerTransport(consumerTransport) {
+        this.associatedConsumerTransport = new ActiveConsumerTransport(consumerTransport);
+    }
+
+    producerTransportConnect(params) {
+        this.associatedProducerTransport.transport.connect(params);
+    }
+
+    consumerTransportConnect(params) {
+        this.associatedConsumerTransport.transport.connect(params);
     }
 
     addActiveProducerToTransport(producer) {
@@ -31,53 +39,39 @@ class User {
 
     addActiveConsumerToTransport(sourceUserName, consumer) {
         if (consumer.kind === 'video') {
-            this.receivingConsumerTransports[sourceUserName].addVideoConsumer(consumer);
+            this.associatedConsumerTransport.addVideoConsumer(sourceUserName, consumer);
         } else {
-            this.receivingConsumerTransports[sourceUserName].addAudioConsumer(consumer);
+            this.associatedConsumerTransport.addAudioConsumer(sourceUserName, consumer);
         }
-    }
-
-    getActiveConsumerTransport(sourceUserName) {
-        return this.receivingConsumerTransports[sourceUserName];
     }
 
     produce(params) {
         return this.associatedProducerTransport.transport.produce(params);
     }
 
-    producerConnect(params) {
-        this.associatedProducerTransport.transport.connect(params);
-    }
-
-    consume(sourceUserName, params) {
-        return this.receivingConsumerTransports[sourceUserName].transport.consume(params);
-    }
-
-    consumerConnect(sourceUserName, params) {
-        this.receivingConsumerTransports[sourceUserName].transport.connect(params);
+    consume(params) {
+        return  this.associatedConsumerTransport.transport.consume(params);
     }
 
     resume(sourceUserName, kind) {
         if (kind === 'video') {
-            this.receivingConsumerTransports[sourceUserName].videoConsumer.resume();
+            this.associatedConsumerTransport.videoConsumers[sourceUserName].resume();
         } else {
-            this.receivingConsumerTransports[sourceUserName].audioConsumer.resume();
+            this.associatedConsumerTransport.audioConsumers[sourceUserName].resume();
         }
     }
 
-    removeActiveConsumerTransport(sourceUserName) {
-        this.receivingConsumerTransports[sourceUserName].transport.close();
-        delete this.receivingConsumerTransports[sourceUserName];
+    removeConsumer(sourceUserName) {
+        this.associatedConsumerTransport.removeVideoConsumer(sourceUserName);
+        this.associatedConsumerTransport.removeAudioConsumer(sourceUserName);
     }
 
     closeActiveTransports() {
         // Close producer transport
         this.associatedProducerTransport.transport.close();
 
-        // Close the consumer transports
-        for (let user of Object.keys(this.receivingConsumerTransports)) {
-            this.receivingConsumerTransports[user].transport.close();
-        }
+        // Close the consumer transport
+        this.associatedConsumerTransport.transport.close();
     }
 }
 

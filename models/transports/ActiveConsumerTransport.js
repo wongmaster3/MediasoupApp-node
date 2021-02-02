@@ -4,25 +4,35 @@ class ActiveConsumerTransport extends ActiveTransport {
     constructor(consumerTransport) {
       super(consumerTransport);
 
-      this.videoConsumer = null;
-      this.audioConsumer = null;
+      this.videoConsumers = {};
+      this.audioConsumers = {};
     }
 
-    addVideoConsumer(videoConsumer) {
-        this.videoConsumer = videoConsumer;
-        this.videoConsumer.on("transportclose", () => {
-            this.videoConsumer.close();
+    addVideoConsumer(userName, videoConsumer) {
+        this.videoConsumers[userName] = videoConsumer;
+        this.videoConsumers[userName].on("transportclose", () => {
+            this.videoConsumers[userName].close();
             console.log("Closing Video Consumer in Consumer Transport " + this.transportId + "!");
         });
         
     }
 
-    addAudioConsumer(audioConsumer) {
-        this.audioConsumer = audioConsumer;
-        this.audioConsumer.on("transportclose", () => {
-            this.audioConsumer.close();
+    addAudioConsumer(userName, audioConsumer) {
+        this.audioConsumers[userName] = audioConsumer;
+        this.audioConsumers[userName].on("transportclose", () => {
+            this.audioConsumers[userName].close();
             console.log("Closing Audio Consumer in Consumer Transport " + this.transportId + "!");
         });
+    }
+
+    removeVideoConsumer(userName) {
+        this.videoConsumers[userName].close();
+        delete this.videoConsumers[userName];
+    }
+
+    removeAudioConsumer(userName) {
+        this.audioConsumers[userName].close();
+        delete this.audioConsumers[userName];
     }
 }
 
