@@ -41,6 +41,8 @@ let rooms = {};
   try {
     // Start a mediasoup worker
     runMediasoupWorker();
+
+    // Create socket io server
     createIOServer();
   } catch (err) {
     console.error(err);
@@ -57,12 +59,22 @@ app.get("/createRoom", async (req, res, next) => {
   const mediasoupRouter = await worker.createRouter({ mediaCodecs });
   // Might need to put below into database?
   rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+  
   res.json({roomId: mediasoupRouter.id});
 });
 
-app.get("/roomExists", async (req, res, next) => {
+app.get("/validateRoomCredentials", async (req, res, next) => {
   const roomId = req.query.roomId;
-  res.json({ exists: roomId in rooms });
+  const userName = req.query.userName;
+
+  var roomExists = false;
+  var nameExists = true;
+  roomExists = roomId in rooms;
+  if (roomExists) {
+    nameExists = rooms[roomId].hasUser(userName);
+  }
+
+  res.json({ roomExists: roomExists, nameExists: nameExists });
 });
 
 // Socket IO routes here
@@ -71,11 +83,8 @@ async function createIOServer() {
   roomNamespace.on('connection', socket => { 
       console.log('Example app listening on port ' + config.listenPort + '!');
 
-      socket.on('roomExists', async (data) => {
-        socket.emit('validRoom', data in rooms);
-      });
-
       socket.on('joinRoom', (data) => {
+        rooms[data.roomId].addUser(data.userName);
         socket.join(data.roomId);
       });
 
@@ -88,9 +97,10 @@ async function createIOServer() {
       });
   
       socket.on('getRouterRtpCapabilities', (roomId) => {
-        console.log('Retrieving RtpCapabilities...')
         try {
+          console.log('requesting: [getRouterRtpCapabilities]');
           socket.emit('rtpCapabilities', rooms[roomId].getRouter().rtpCapabilities);
+          console.log('request succeeded: [getRouterRtpCapabilities]');
         } catch (error) {
           console.log("RoomId: " + roomId);
           console.log("RoomIdObj: " + rooms[roomId]);
@@ -99,13 +109,13 @@ async function createIOServer() {
         }
       });
   
-      socket.on('createProducerTransport', async (roomId) => {
+      socket.on('createProducerTransport', async (data) => {
         try {
-          console.log('Creating Producer Transport...');
-          const { transport, params } = await createWebRtcTransport(roomId);
-          console.log('Created Producer Transport!');
-          rooms[roomId].addActiveProducerTransport(transport);
+          console.log('requesting: [createProducerTransport]');
+          const { transport, params } = await createWebRtcTransport(data.roomId);
+          rooms[data.roomId].getUser(data.userName).addActiveProducerTransport(transport);
           socket.emit('producerTransportParameters', params);
+          console.log('request succeeded: [createProducerTransport]');
         } catch (err) {
           console.error(err);
           socket.emit('producerTransportParameters', { error: err.message });
@@ -114,106 +124,95 @@ async function createIOServer() {
   
       socket.on('createConsumerTransport', async (data) => {
         try {
-          const roomId = data.roomId;
-          const producerTransportId = data.producerTransportId;
-          console.log('Creating Consumer Transport...');
-          const { transport, params } = await createWebRtcTransport(roomId);
-          console.log('Created Consumer Transport!');
-          rooms[roomId].addActiveConsumerTransport(transport, producerTransportId, data.parentProducerTransportId);
-          console.log('Current consumer Ids: ' + Object.keys(rooms[roomId].consumerTransports));
-          console.log('Just Created Id: ' + params.id);
+          console.log('requesting: [createConsumerTransport]');
+          const { transport, params } = await createWebRtcTransport(data.roomId);
+          rooms[data.roomId].getUser(data.userName).addActiveConsumerTransport(transport);
           socket.emit('consumerTransportParameters', params);
+          console.log('request succeeded: [createConsumerTransport]');
         } catch (err) {
           console.error(err);
           socket.emit('consumerTransportParameters', { error: err.message });
         }
       });
 
-      socket.on('createBatchConsumerTransports', async (data) => {
-        try {
-          let allParams = [];
-          const producerTransports = rooms[data.roomId].getActiveProducerTransports();
-          for (let producerTransportId of Object.keys(producerTransports)) {
-            if (data.originId !== producerTransportId) {
-              const { transport, params } = await createWebRtcTransport(data.roomId);
-              // consumer transport, current requester transport id, parent of consumer transport
-              rooms[data.roomId].addActiveConsumerTransport(transport, data.originId, producerTransportId);
-              allParams.push({ transportParams: params, originId: producerTransportId });
-            }
-          }
-          socket.emit('batchConsumerTransportParameters', allParams);
-        } catch (err) {
-          console.error(err);
-          socket.emit('batchConsumerTransportParameters', { error: err.message });
-        }
-      });
-
       socket.on('connectProducerTransport', async (data) => {
-        console.log('Connecting Producer Transport...');
-        await rooms[data.roomId].getActiveProducerTransport(data.transportId).transport.connect({ dtlsParameters: data.dtlsParameters });
-        console.log('Connected Producer Transport!');
+        console.log('requesting: [connectProducerTransport]');
+        await rooms[data.roomId].getUser(data.userName).producerTransportConnect({ dtlsParameters: data.dtlsParameters });
+        console.log('request succeeded: [createProducerTransport]');
       });
   
       socket.on('connectConsumerTransport', async (data) => {
-        console.log('Connecting Consumer Transport...');
-        await rooms[data.roomId].getActiveConsumerTransport(data.transportId).transport.connect({ dtlsParameters: data.dtlsParameters });
-        console.log('Connected Consumer Transport!');
+        console.log('requesting: [connectConsumerTransport]');
+        await rooms[data.roomId].getUser(data.userName).consumerTransportConnect({ dtlsParameters: data.dtlsParameters });
+        console.log('request succeeded: [createConsumerTransport]');
       });
-  
-      socket.on('produce', async (data) => {
-        const {kind, rtpParameters} = data;
-        console.log('Creating Produce ' + kind + ' Stream...');
-        const producer = await rooms[data.roomId].getActiveProducerTransport(data.producerTransportId).transport.produce({ kind, rtpParameters });
-        rooms[data.roomId].addActiveProducerToTransport(data.producerTransportId, producer);
-        console.log('Created Produce ' + kind + ' Stream!');
 
-        socket.to(data.roomId).emit('newProducer', {originTransportId: data.producerTransportId, producer: { id: producer.id, kind: kind }});
+      socket.on('createProducer', async (data) => {
+        const {kind, rtpParameters} = data;
+        console.log('requesting: [createProducer, kind: ' + kind + ']');
+        const producer = await rooms[data.roomId].getUser(data.userName).produce({ kind, rtpParameters });
+        rooms[data.roomId].getUser(data.userName).addActiveProducerToTransport(producer);
+        console.log('request succeeded: [createProducer, kind: ' + kind + ']');
+
+        socket.to(data.roomId).emit('newProducer', {sourceUserName: data.userName, producer: { id: producer.id, kind: kind }});
         socket.emit('producerId', { id: producer.id, kind: kind });
       });
   
-      socket.on('consume', async (data) => {
-        console.log('Creating Consumer...');
-        socket.emit('newConsumer', await createConsumer(data.producerTransportId, data.kind, data.rtpCapabilities, data.transportId, data.roomId));
-        console.log('Created Consumer!');
+      socket.on('createConsumer', async (data) => {
+        console.log('requesting: [createConsumer, kind: ' + data.kind + ']');
+        socket.emit('newConsumers', [await createConsumer(data.sourceUserName, data.kind, data.rtpCapabilities, data.destUserName, data.roomId)]);
+        console.log('request succeeded: [createConsumer, kind: ' + data.kind + ']');
+      });
+
+      socket.on('createBatchConsumers', async (data) => {
+        try {
+          console.log('requesting: [createBatchConsumers, kind: ' + data.kind + ']');
+          let allParams = [];
+          const users = rooms[data.roomId].getUsers();
+          for (let user of Object.keys(users)) {
+            if (data.userName !== user) {
+              const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
+              allParams.push(newConsumer);
+            }
+          }
+          socket.emit('newConsumers', allParams);
+          console.log('request succeeded: [createBatchConsumers, kind: ' + data.kind + ']');
+        } catch (err) {
+          console.error(err);
+          socket.emit('newConsumers', { error: err.message });
+        }
       });
   
-      socket.on('resume', async (data) => {
-        console.log("Resuming Track...");
-        await rooms[data.roomId].getActiveConsumer(data.transportId, data.kind).resume();
-        console.log("Resumed");
+      socket.on('resumeConsumer', async (data) => {
+        console.log('requesting: [resumeConsumer, kind: ' + data.kind + ']');
+        await rooms[data.roomId].getUser(data.destUserName).resume(data.sourceUserName, data.kind);
+        console.log('request succeeded: [resumeConsumer, kind: ' + data.kind + ']');
       });
 
       socket.on('cleanup', async (data) => {
-        console.log("Cleaning up...");
+        console.log('requesting: [cleanup, user: ' + data.userName + ']');
         socket.to(data.roomId).emit('removedProducer', data);
-        const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
-        console.log("In cleanup childPairs keys: " + Object.keys(childPairs));
-        console.log("In cleanup childPairs values: " + Object.values(childPairs));
-        rooms[data.roomId].removeActiveProducerTransport(data.producerId);
-        for (let producerTransportId of Object.keys(childPairs)) {
-          rooms[data.roomId].removeActiveConsumerTransport(childPairs[producerTransportId]);
-        }
+
+        // Remove user from the room and close the transports
+        rooms[data.roomId].removeUser(data.userName);
 
         // Have the user leave the room
         socket.leave(data.roomId);
 
-        // If there is no more people in room, close it 
-        // should be something to do with keys
-        const producerLength = Object.keys(rooms[data.roomId].getActiveProducerTransports());
-        const consumerLength = Object.keys(rooms[data.roomId].getActiveConsumerTransports());
-        if (producerLength == 0 && consumerLength == 0) {
-          rooms[data.roomId].routerObj.close();
+        // If there is no more people in room, close it
+        if (rooms[data.roomId].numberOfUsers() === 0) {
+          rooms[data.roomId].getRouter().close();
           delete rooms[data.roomId];
-          console.log("Room " + data.roomId + " has been closed!")
+          console.log('request succeeded: [roomClosed, room: ' + data.roomId + ']');
         }
+        console.log('request succeeded: [cleanup, user: ' + data.userName + ']');
       });
 
-      socket.on('removeConsumerTransport', async (data) => {
+      socket.on('removeConsumer', async (data) => {
         // Remove consumer transport of the producer that was just removed
-        console.log("Removing consumer transport...");
-        const childPairs = rooms[data.roomId].getActiveProducerTransport(data.producerId).childTransportIds;
-        rooms[data.roomId].removeActiveConsumerTransport(childPairs[data.removedProducerId]);
-        delete childPairs[data.removedProducerId];
+        console.log('requesting: [removeConsumer, user: ' + data.removedUserName + ']');
+        rooms[data.roomId].getUser(data.userName).removeConsumer(data.removedUserName);
+        console.log('request succeeded: [removeConsumer, user: ' + data.removedUserName + ']');
       });
    });
   
@@ -221,11 +220,8 @@ async function createIOServer() {
 }
 
 
-async function createConsumer(producerTransportId, kind, rtpCapabilities, consumerTransportId, roomId) {
-  console.log("In createConsumer...");
-  console.log(Object.keys(rooms[roomId].getActiveConsumerTransports()));
-  console.log(consumerTransportId);
-  const producerTransport = rooms[roomId].getActiveProducerTransport(producerTransportId);
+async function createConsumer(sourceUserName, kind, rtpCapabilities, destUserName, roomId) {
+  const producerTransport = rooms[roomId].getUser(sourceUserName).associatedProducerTransport;
   var producer = kind === "video" ? producerTransport.videoProducer : producerTransport.audioProducer;
   if (!rooms[roomId].getRouter().canConsume(
     {
@@ -238,32 +234,33 @@ async function createConsumer(producerTransportId, kind, rtpCapabilities, consum
   }
   
   try {
-    const consumer = await rooms[roomId].getActiveConsumerTransport(consumerTransportId).transport.consume({
+    const consumer = await rooms[roomId].getUser(destUserName).consume({
       producerId: producer.id,
       rtpCapabilities,
       paused: producer.kind === 'video',
       // paused: false,
     });
-    rooms[roomId].addActiveConsumerToTransport(consumerTransportId, consumer);
 
-    // if (consumer.type === 'simulcast') {
-    //   await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
-    // }
-
-    return {
-      producerId: producer.id,
-      producerTransportId: producerTransportId,
-      id: consumer.id,
-      consumerTransportId: consumerTransportId,
-      kind: consumer.kind,
-      rtpParameters: consumer.rtpParameters,
-      type: consumer.type,
-      producerPaused: consumer.producerPaused
-    };
+    rooms[roomId].getUser(destUserName).addActiveConsumerToTransport(sourceUserName, consumer);
   } catch (error) {
     console.error('consume failed', error);
     return;
   }
+
+  if (consumer.type === 'simulcast') {
+    await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
+  }
+
+  return {
+    producerId: producer.id,
+    consumerId: consumer.id,
+    sourceUserName,
+    destUserName,
+    kind: consumer.kind,
+    rtpParameters: consumer.rtpParameters,
+    type: consumer.type,
+    producerPaused: consumer.producerPaused
+  };
 }
 
 async function createWebRtcTransport(roomId) {
@@ -279,7 +276,7 @@ async function createWebRtcTransport(roomId) {
     preferTcp: true,
     initialAvailableOutgoingBitrate,
   });
-  console.log('Created WebRtcTransport...')
+
   if (maxIncomingBitrate) {
     try {
       await transport.setMaxIncomingBitrate(maxIncomingBitrate);
