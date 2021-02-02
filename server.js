@@ -232,20 +232,15 @@ async function createConsumer(sourceUserName, kind, rtpCapabilities, destUserNam
     console.error('cannot consume');
     return;
   }
-  
-  try {
-    const consumer = await rooms[roomId].getUser(destUserName).consume({
-      producerId: producer.id,
-      rtpCapabilities,
-      paused: producer.kind === 'video',
-      // paused: false,
-    });
 
-    rooms[roomId].getUser(destUserName).addActiveConsumerToTransport(sourceUserName, consumer);
-  } catch (error) {
-    console.error('consume failed', error);
-    return;
-  }
+  const consumer = await rooms[roomId].getUser(destUserName).consume({
+    producerId: producer.id,
+    rtpCapabilities,
+    paused: producer.kind === 'video',
+    // paused: false,
+  });
+
+  rooms[roomId].getUser(destUserName).addActiveConsumerToTransport(sourceUserName, consumer);
 
   if (consumer.type === 'simulcast') {
     await consumer.setPreferredLayers({ spatialLayer: 2, temporalLayer: 2 });
