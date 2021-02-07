@@ -37,9 +37,7 @@ module.exports = {
           listenIps: [
             {
               ip: "0.0.0.0",
-              // When the ports go public, we need to fill in the announcedIp with the public server domain
-              // ip: "192.168.83.129",
-              announcedIp: "128.8.120.59",
+              announcedIp: "35.245.72.15",
             }
           ],
           maxIncomingBitrate: 1500000,
