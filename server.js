@@ -6,8 +6,8 @@ const express = require('express');
 const app = express();
 const fs = require('fs');
 const options = {
-	// key: fs.readFileSync('key.pem'),
-	// cert: fs.readFileSync('cert.pem')
+	key: fs.readFileSync('/etc/letsencrypt/live/spatialsoup.com/privkey.pem'),
+	cert: fs.readFileSync('/etc/letsencrypt/live/spatialsoup.com/fullchain.pem')
 };
 const server = require('https').createServer(options, app);
 const optionsSocket = { /* ... */ };
