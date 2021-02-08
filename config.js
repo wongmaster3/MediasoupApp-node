@@ -1,5 +1,5 @@
 module.exports = {
-      listenPort: 80,
+      listenPort: 3000,
       mediasoup: {
         // Worker settings
         worker: {
