@@ -147,8 +147,8 @@ async function createIOServer() {
         rooms[data.roomId].getUser(data.userName).addActiveProducerToTransport(producer);
         console.log('request succeeded: [createProducer, kind: ' + kind + ']');
 
-        socket.to(data.roomId).emit('newProducer', {sourceUserName: data.userName, producer: { id: producer.id, kind: kind }});
         socket.emit('producerId', { id: producer.id, kind: kind });
+        socket.to(data.roomId).emit('newProducer', {sourceUserName: data.userName, producer: { id: producer.id, kind: kind }});
       });
   
       socket.on('createConsumer', async (data) => {
@@ -163,9 +163,20 @@ async function createIOServer() {
           let allParams = [];
           const users = rooms[data.roomId].getUsers();
           for (let user of Object.keys(users)) {
-            if (data.userName !== user) {
-              const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
-              allParams.push(newConsumer);
+            if (data.userName !== user && rooms[data.roomId].getUser(user).associatedProducerTransport != null) {
+              if (data.kind === 'video') {
+                if (rooms[data.roomId].getUser(user).associatedProducerTransport.videoProducer != null) {
+                  const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
+                  allParams.push(newConsumer);
+                }
+              } else {
+                if (data.kind === 'audio') {
+                  if (rooms[data.roomId].getUser(user).associatedProducerTransport.audioProducer != null) {
+                    const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
+                    allParams.push(newConsumer);
+                  }
+                }
+              }
             }
           }
           socket.emit('newConsumers', allParams);
