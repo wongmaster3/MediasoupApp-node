@@ -1,6 +1,7 @@
 // For debugging purposes
 process.env.DEBUG = "mediasoup*"
 
+var os = require('os');
 const mediasoup = require("mediasoup");
 const express = require('express');
 const app = express();
@@ -9,6 +10,7 @@ const options = { /* ... */ };
 const io = require('socket.io')(server, options);
 const config = require('./config.js');
 
+var Heap = require('heap');
 const Room = require('./room.js');
 
 
@@ -24,16 +26,26 @@ app.use(cors(corsOptions))
 // app.use(express.static(__dirname + '/dist/WebRTC'));
 
 
-let worker;
-let webServer;
-let socketServer;
 // Will store the room id and a room object where the room id is the router id
 let rooms = {};
+
+// Will store the workers on the cpu
+// Currently whenever a new router is created, we will increase the load 
+// by 1 and decrease the load by 1 when a router is deleted
+let workers = new Heap(function cmp(a, b) {
+  if (a.load < b.load) {
+    return -1;
+  } 
+  if (b.load < a.load) {
+    return 1;
+  }
+  return 0;
+});
 
 (async () => {
   try {
     // Start a mediasoup worker
-    runMediasoupWorker();
+    runMediasoupWorkers();
 
     // Create socket io server
     createIOServer();
@@ -49,9 +61,13 @@ let rooms = {};
 
 app.get("/createRoom", async (req, res, next) => {
   const mediaCodecs = config.mediasoup.router.mediaCodecs;
-  const mediasoupRouter = await worker.createRouter({ mediaCodecs });
+  const lowestLoadObj = workers.peek();
+  const mediasoupRouter = await lowestLoadObj.worker.createRouter({ mediaCodecs });
+
+  workers.replace({worker: lowestLoadObj.worker, load: lowestLoadObj.load + 1});
+
   // Might need to put below into database?
-  rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter);
+  rooms[mediasoupRouter.id] = new Room(mediasoupRouter.id, mediasoupRouter, lowestLoadObj.worker.pid);
   
   res.json({roomId: mediasoupRouter.id});
 });
@@ -206,6 +222,16 @@ async function createIOServer() {
         // If there is no more people in room, close it
         if (rooms[data.roomId].numberOfUsers() === 0) {
           rooms[data.roomId].getRouter().close();
+
+          // When removing a room, decrement load of worker
+          const workersArr = workers.toArray();
+          let i = 0; 
+          while (workersArr[i].worker.pid !== rooms[data.roomId].getWorkerId()) {
+            i++;
+          }
+          workersArr[i].load -= 1;
+          workers.heapify();
+
           delete rooms[data.roomId];
           console.log('request succeeded: [roomClosed, room: ' + data.roomId + ']');
         }
@@ -296,17 +322,26 @@ async function createWebRtcTransport(roomId) {
   };
 }
 
-async function runMediasoupWorker() {
-  worker = await mediasoup.createWorker({
-    logLevel: config.mediasoup.worker.logLevel,
-    logTags: config.mediasoup.worker.logTags,
-    rtcMinPort: config.mediasoup.worker.rtcMinPort,
-    rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
-  });
+async function runMediasoupWorkers() {
+  // Recommended that we create number of workers equal
+  // to the number of vcpu's on computer
+  const numWorkers = Object.keys(os.cpus()).length;
 
-  worker.on('died', () => {
-    console.error('mediasoup worker died, exiting in 2 seconds... [pid:%d]', worker.pid);
-    setTimeout(() => process.exit(1), 2000);
-  });
+  console.log('Creating ' + numWorkers + ' Workers...');
+  for (let i = 0; i < numWorkers; i++) {
+    let worker = await mediasoup.createWorker({
+      logLevel: config.mediasoup.worker.logLevel,
+      logTags: config.mediasoup.worker.logTags,
+      rtcMinPort: config.mediasoup.worker.rtcMinPort,
+      rtcMaxPort: config.mediasoup.worker.rtcMaxPort,
+    });
+  
+    worker.on('died', () => {
+      console.error('mediasoup worker died, exiting in 2 seconds... [pid:%d]', worker.pid);
+      setTimeout(() => process.exit(1), 2000);
+    });
+
+    workers.push({worker, load: 0});
+  }
 }
 
