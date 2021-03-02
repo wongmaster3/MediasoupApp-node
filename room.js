@@ -1,10 +1,11 @@
 const User = require('./models/User.js');
 
 class Room {
-    constructor(roomId, router) {
+    constructor(roomId, router, workerId) {
       // We use the router id as the room id
       this.roomId = roomId;
       this.routerObj = router;
+      this.workerId = workerId;
       this.users = {};
     }
 
@@ -35,6 +36,10 @@ class Room {
 
     getRouter() {
         return this.routerObj;
+    }
+
+    getWorkerId() {
+        return this.workerId;
     }
 }
 
