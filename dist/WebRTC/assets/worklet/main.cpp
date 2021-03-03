@@ -15,19 +15,6 @@ EMSCRIPTEN_KEEPALIVE visisonics_rs3d_EXPERIENCEINFO experienceinfo;
 EMSCRIPTEN_KEEPALIVE visisonics_rs3d_PROCESSINGINFO processinginfo;
 
 EMSCRIPTEN_KEEPALIVE void initialize(int sampleRate, int sampleBlock) {
-    // Seems like 128 samples works the best as of right now...
-    int x = visisonics_rs3d_GrabHrtf (&phrtf, hrtf_cp048_r1_icb, hrtf_cp048_r1_icb_len, (long) sampleRate, (long) sampleBlock);
-    printf("Grab Hrtf Status: %d\n", x);
-
-    // Fill experience info
-    experienceinfo.customroomsize = false;
-    experienceinfo.customreflection = false;
-    experienceinfo.enableambisonics = false;
-    experienceinfo.requestrt60 = false;
-  
-    int y = visisonics_rs3d_GrabExperience(&ppexperience, phrtf, &experienceinfo);
-    printf("Grab Experience Status: %d\n", y);
-
     // Fill initial processing info
     long cx, ax;
     
@@ -52,6 +39,19 @@ EMSCRIPTEN_KEEPALIVE void initialize(int sampleRate, int sampleBlock) {
     processinginfo.enableinterpolationforambisonics = false;
     processinginfo.enableequalizercurve = false;
 
+    // Seems like 128 samples works the best as of right now...
+    int x = visisonics_rs3d_GrabHrtf (&phrtf, hrtf_cp048_r1_icb, hrtf_cp048_r1_icb_len, (long) sampleRate, (long) sampleBlock);
+    printf("Grab Hrtf Status: %d\n", x);
+
+    // Fill experience info
+    experienceinfo.customroomsize = false;
+    experienceinfo.customreflection = false;
+    experienceinfo.enableambisonics = false;
+    experienceinfo.requestrt60 = false;
+  
+    int y = visisonics_rs3d_GrabExperience(&ppexperience, phrtf, &experienceinfo);
+    printf("Grab Experience Status: %d\n", y);
+
     return;
 }
 
@@ -66,7 +66,6 @@ EMSCRIPTEN_KEEPALIVE void updateObjectInfo(long objIndex, float volume, float x,
   processinginfo.pobjectinfo[objIndex].pposition[0] = x;
   processinginfo.pobjectinfo[objIndex].pposition[1] = y;
   processinginfo.pobjectinfo[objIndex].pposition[2] = z;
-
 }
 
 EMSCRIPTEN_KEEPALIVE void process(float* inputBuffer[], float* outputBuffer[], int numInputs) {
