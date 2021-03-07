@@ -215,14 +215,18 @@ async function createIOServer() {
       socket.on('pauseProducer', async (data) => {
         console.log('requesting: [pauseProducer, kind: ' + data.kind + ']');
         await rooms[data.roomId].getUser(data.userName).pauseProducer(data.kind);
-        socket.to(data.roomId).emit('pauseProducer', data);
+        if (data.kind === 'video') {
+          socket.to(data.roomId).emit('pausedProducer', data);
+        }
         console.log('request succeeded: [pauseProducer, kind: ' + data.kind + ']');
       });
 
       socket.on('resumeProducer', async (data) => {
         console.log('requesting: [resumeProducer, kind: ' + data.kind + ']');
         await rooms[data.roomId].getUser(data.userName).resumeProducer(data.kind);
-        socket.to(data.roomId).emit('resumeProducer', data);
+        if (data.kind === 'video') {
+          socket.to(data.roomId).emit('resumedProducer', data);
+        }
         console.log('request succeeded: [resumeProducer, kind: ' + data.kind + ']');
       });
 
