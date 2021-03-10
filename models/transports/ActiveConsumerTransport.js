@@ -26,12 +26,10 @@ class ActiveConsumerTransport extends ActiveTransport {
     }
 
     removeVideoConsumer(userName) {
-        this.videoConsumers[userName].close();
         delete this.videoConsumers[userName];
     }
 
     removeAudioConsumer(userName) {
-        this.audioConsumers[userName].close();
         delete this.audioConsumers[userName];
     }
 }
