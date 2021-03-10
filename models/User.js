@@ -53,11 +53,35 @@ class User {
         return  this.associatedConsumerTransport.transport.consume(params);
     }
 
-    resume(sourceUserName, kind) {
+    resumeConsumer(sourceUserName, kind) {
         if (kind === 'video') {
             this.associatedConsumerTransport.videoConsumers[sourceUserName].resume();
         } else {
             this.associatedConsumerTransport.audioConsumers[sourceUserName].resume();
+        }
+    }
+
+    pauseConsumer(sourceUserName, kind) {
+        if (kind === 'video') {
+            this.associatedConsumerTransport.videoConsumers[sourceUserName].pause();
+        } else {
+            this.associatedConsumerTransport.audioConsumers[sourceUserName].pause();
+        }
+    }
+
+    resumeProducer(kind) {
+        if (kind === 'video') {
+            this.associatedProducerTransport.videoProducer.resume();
+        } else {
+            this.associatedProducerTransport.audioProducer.resume();
+        }
+    }
+
+    pauseProducer(kind) {
+        if (kind === 'video') {
+            this.associatedProducerTransport.videoProducer.pause();
+        } else {
+            this.associatedProducerTransport.audioProducer.pause();
         }
     }
 

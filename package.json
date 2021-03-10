@@ -10,8 +10,8 @@
   "license": "ISC",
   "dependencies": {
     "express": "^4.17.1",
-    "http-server": "^0.12.3",
-    "mediasoup": "^3.6.22",
+    "heap": "^0.2.6",
+    "mediasoup": "^3.6.21",
     "socket.io": "^2.3.0"
   },
   "devDependencies": {
