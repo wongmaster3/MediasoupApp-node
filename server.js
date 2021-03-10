@@ -176,7 +176,10 @@ async function createIOServer() {
   
       socket.on('createConsumer', async (data) => {
         console.log('requesting: [createConsumer, kind: ' + data.kind + ']');
-        socket.emit('newConsumers', [await createConsumer(data.sourceUserName, data.kind, data.rtpCapabilities, data.destUserName, data.roomId)]);
+        socket.emit('newConsumers', [{ 
+          consumer: await createConsumer(data.sourceUserName, data.kind, data.rtpCapabilities, data.destUserName, data.roomId),
+          videoMuted: rooms[data.roomId].getUser(data.sourceUserName).associatedProducerTransport.videoProducer.paused
+        }]);
         console.log('request succeeded: [createConsumer, kind: ' + data.kind + ']');
       });
 
@@ -190,13 +193,13 @@ async function createIOServer() {
               if (data.kind === 'video') {
                 if (rooms[data.roomId].getUser(user).associatedProducerTransport.videoProducer != null) {
                   const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
-                  allParams.push(newConsumer);
+                  allParams.push({consumer: newConsumer, videoMuted: rooms[data.roomId].getUser(user).associatedProducerTransport.videoProducer.paused});
                 }
               } else {
                 if (data.kind === 'audio') {
                   if (rooms[data.roomId].getUser(user).associatedProducerTransport.audioProducer != null) {
                     const newConsumer = await createConsumer(user, data.kind, data.rtpCapabilities, data.userName, data.roomId)
-                    allParams.push(newConsumer);
+                    allParams.push({consumer: newConsumer});
                   }
                 }
               }
@@ -212,8 +215,26 @@ async function createIOServer() {
   
       socket.on('resumeConsumer', async (data) => {
         console.log('requesting: [resumeConsumer, kind: ' + data.kind + ']');
-        await rooms[data.roomId].getUser(data.destUserName).resume(data.sourceUserName, data.kind);
+        await rooms[data.roomId].getUser(data.destUserName).resumeConsumer(data.sourceUserName, data.kind);
         console.log('request succeeded: [resumeConsumer, kind: ' + data.kind + ']');
+      });
+
+      socket.on('pauseProducer', async (data) => {
+        console.log('requesting: [pauseProducer, kind: ' + data.kind + ']');
+        await rooms[data.roomId].getUser(data.userName).pauseProducer(data.kind);
+        if (data.kind === 'video') {
+          socket.to(data.roomId).emit('pausedProducer', data);
+        }
+        console.log('request succeeded: [pauseProducer, kind: ' + data.kind + ']');
+      });
+
+      socket.on('resumeProducer', async (data) => {
+        console.log('requesting: [resumeProducer, kind: ' + data.kind + ']');
+        await rooms[data.roomId].getUser(data.userName).resumeProducer(data.kind);
+        if (data.kind === 'video') {
+          socket.to(data.roomId).emit('resumedProducer', data);
+        }
+        console.log('request succeeded: [resumeProducer, kind: ' + data.kind + ']');
       });
 
       socket.on('cleanup', async (data) => {
